@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task2</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+</head>
+<body>
+
+    <p>Import Products</p>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label for="jsonFile">Step1: Select file</label><br>
+        <input type="file" name="jsonFile" id="jsonFile" accept=".json">
+        <p>Supported File Type(s):.CSV,.JSON</p>
+        <br><br>
+        <p>Step2: Specify Format</p>
+            <label for="fileType">File Type:</label>
+            <select id="fileType" name="fileType">
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+            </select>
+        
+            <br>
+        
+            <label for="charEncoding">Character Encoding:</label>
+            <select id="charEncoding" name="charEncoding">
+                <option value="utf-8">UTF-8</option>
+                <option value="utf-8">ASCII</option>
+                <option value="utf-8">ISCII</option>
+            </select>
+        
+            <br>
+        
+            <label for="delimiter">Delimiter:</label>
+            <select id="delimiter" name="delimiter">
+                <option value="utf-8">comma</option>
+                <option value="utf-8">;</option>
+                <option value="utf-8">.</option>
+            </select>
+        
+            <br>
+        
+            <label>
+                <input type="checkbox" id="hasHeader" name="hasHeader">
+                Has Header
+            </label>
+        
+            <br><br>
+            <p>Step3: Display Handling</p>
+        <p>Select the fields to be displayed</p>
+
+        <input type="submit" value="Select Columns">
+        <br>
+        </form>
+        
+    <div id="columnSelection" style="display: none;">
+        <form id="columnForm" style="display: inline-block;">
+            <select id="availableFields" multiple style="display: inline-block; margin-right: 5px;"></select>
+            <button type="button" id="moveRight" style="display: inline-block; margin-right: 5px;">>></button>
+            <button type="button" id="moveLeft" style="display: inline-block; margin-right: 5px;"><<</button>
+            <select id="displayFields" multiple style="display: inline-block; margin-right: 5px;"></select>
+        </form><br>
+        <button type="button" onclick="displaySelectedColumns()" style="display: inline-block;">Display Selected Columns</button>
+    </div>
+    
+   
+    
+
+    <div id="resultTable" style="display: none;">
+        <h2>Selected Columns:</h2>
+        <table id="dataTable" border="1">
+        </table>
+    </div>
+
+    <script>
+        function moveSelectedOptions(sourceList, targetList) {
+            $(sourceList + " option:selected").appendTo(targetList);
+        }
+
+        $(document).ready(function() {
+            $("#uploadForm").submit(function(e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+
+                $.ajax({
+                    url: "/upload",
+                    type: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(data) {
+                        displayColumns(data.columns);
+                    }
+                });
+            });
+
+            function displayColumns(columns) {
+                var availableFields = $("#availableFields");
+                availableFields.empty();
+                columns.forEach(function(column) {
+                    availableFields.append(`<option value="${column}">${column}</option>`);
+                });
+
+                $("#columnSelection").show();
+            }
+
+            window.displaySelectedColumns = function() {
+                var selectedColumns = $("#displayFields").val();
+
+                if (selectedColumns.length > 0) {
+                    $.ajax({
+                        url: "/display",
+                        type: "POST",
+                        data: { selectedColumns: selectedColumns },
+                        success: function(data) {
+                            displayTable(data.table);
+                        }
+                    });
+                }
+            };
+
+            function displayTable(table) {
+                $("#dataTable").empty();
+                var headerRow = "<tr>";
+                table.columns.forEach(function(column) {
+                    headerRow += `<th>${column}</th>`;
+                });
+                headerRow += "</tr>";
+                $("#dataTable").append(headerRow);
+
+                table.rows.forEach(function(row) {
+                    var dataRow = "<tr>";
+                    table.columns.forEach(function(column) {
+                        dataRow += `<td>${row[column]}</td>`;
+                    });
+                    dataRow += "</tr>";
+                    $("#dataTable").append(dataRow);
+                });
+
+                $("#resultTable").show();
+            }
+            $("#moveRight").click(function() {
+                moveSelectedOptions("#availableFields", "#displayFields");
+            });
+
+            $("#moveLeft").click(function() {
+                moveSelectedOptions("#displayFields", "#availableFields");
+            });
+        });
+    </script>
+
+</body>
+</html>
